@@ -78,6 +78,7 @@ static NSDictionary* customCertificatesForHost;
 @property (nonatomic, copy) RCTDirectEventBlock onMessage;
 @property (nonatomic, copy) RCTDirectEventBlock onScroll;
 @property (nonatomic, copy) RCTDirectEventBlock onContentProcessDidTerminate;
+@property (nonatomic, copy) RCTDirectEventBlock onUpdateCookies;
 #if !TARGET_OS_OSX
 @property (nonatomic, copy) WKWebView *webView;
 #else
@@ -554,9 +555,9 @@ static NSDictionary* customCertificatesForHost;
         }
         [_webView loadHTMLString:html baseURL:baseURL];
         return;
-    } 
+    }
     //Add cookie for subsequent resource requests sent by page itself, if cookie was set in headers on WebView
-    NSString *headerCookie = [RCTConvert NSString:_source[@"headers"][@"cookie"]]; 
+    NSString *headerCookie = [RCTConvert NSString:_source[@"headers"][@"cookie"]];
     if(headerCookie) {
       NSDictionary *headers = [NSDictionary dictionaryWithObjectsAndKeys:headerCookie,@"Set-Cookie",nil];
       NSURL *urlString = [NSURL URLWithString:_source[@"uri"]];
@@ -940,6 +941,26 @@ static NSDictionary* customCertificatesForHost;
 
 #endif // !TARGET_OS_OSX
 
+-(NSDictionary *)createCookieData:(NSHTTPCookie *)cookie
+{
+    NSMutableDictionary *cookieData = [NSMutableDictionary dictionary];
+    NSDateFormatter *formatter = [NSDateFormatter new];
+    [formatter setDateFormat:@"yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ"];
+    
+    [cookieData setObject:cookie.name forKey:@"name"];
+    [cookieData setObject:cookie.value forKey:@"value"];
+    [cookieData setObject:cookie.path forKey:@"path"];
+    [cookieData setObject:cookie.domain forKey:@"domain"];
+    [cookieData setObject:[NSString stringWithFormat:@"%@", @(cookie.version)] forKey:@"version"];
+    NSInteger length = [cookie.expiresDate.description length];
+    if (length > 0) {
+        [cookieData setObject:[formatter stringFromDate:cookie.expiresDate] forKey:@"expires"];
+    }
+    [cookieData setObject:[NSNumber numberWithBool:(BOOL)cookie.secure] forKey:@"secure"];
+    [cookieData setObject:[NSNumber numberWithBool:(BOOL)cookie.HTTPOnly] forKey:@"httpOnly"];
+    return cookieData;
+}
+
 /**
  * Decides whether to allow or cancel a navigation.
  * @see https://fburl.com/42r9fxob
@@ -950,6 +971,19 @@ static NSDictionary* customCertificatesForHost;
 {
   static NSDictionary<NSNumber *, NSString *> *navigationTypes;
   static dispatch_once_t onceToken;
+    if(_onUpdateCookies) {
+        [webView.configuration.websiteDataStore.httpCookieStore getAllCookies:^(NSArray<NSHTTPCookie *> * allCookies) {
+            NSMutableDictionary<NSString *, id> *event = [self baseEvent];
+            NSMutableDictionary *cookies = [NSMutableDictionary dictionary];
+            for (NSHTTPCookie *cookie in allCookies) {
+                [cookies setObject:[self createCookieData:cookie] forKey:cookie.name];
+            }
+            [event addEntriesFromDictionary: @{
+              @"cookies": cookies,
+            }];
+            _onUpdateCookies(event);
+        }];
+    }
 
   dispatch_once(&onceToken, ^{
     navigationTypes = @{

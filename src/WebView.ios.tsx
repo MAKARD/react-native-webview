@@ -29,6 +29,7 @@ import {
   ViewManager,
   State,
   RNCWebViewUIManagerIOS,
+  WebViewUpdateCookiesEvent,
 } from './WebViewTypes';
 
 import styles from './WebView.styles';
@@ -263,6 +264,13 @@ class WebView extends React.Component<IOSWebViewProps, State> {
     }
   };
 
+  onUpdateCookies = (event: WebViewUpdateCookiesEvent) => {
+    const { onUpdateCookies } = this.props;
+    if (onUpdateCookies) {
+      onUpdateCookies(event);
+    }
+  }
+
   componentDidUpdate(prevProps: IOSWebViewProps) {
     this.showRedboxOnPropChanges(prevProps, 'allowsInlineMediaPlayback');
     this.showRedboxOnPropChanges(prevProps, 'incognito');
@@ -347,6 +355,7 @@ class WebView extends React.Component<IOSWebViewProps, State> {
         onScroll={this.props.onScroll}
         onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
         onContentProcessDidTerminate={this.onContentProcessDidTerminate}
+        onUpdateCookies={this.onUpdateCookies}
         injectedJavaScript={this.props.injectedJavaScript}
         injectedJavaScriptBeforeContentLoaded={this.props.injectedJavaScriptBeforeContentLoaded}
         injectedJavaScriptForMainFrameOnly={injectedJavaScriptForMainFrameOnly}

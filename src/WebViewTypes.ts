@@ -136,6 +136,21 @@ export interface WebViewError extends WebViewNativeEvent {
   description: string;
 }
 
+export interface Cookie {
+  name: string;
+  value: string;
+  path: string;
+  domain: string;
+  version: string;
+  expires?: string;
+  secure: boolean;
+  httpOnly: boolean;
+}
+
+export interface WebViewUpdateCookies extends WebViewNativeEvent {
+  cookies: Record<string, Cookie>;
+}
+
 export interface WebViewHttpError extends WebViewNativeEvent {
   description: string;
   statusCode: number;
@@ -162,6 +177,8 @@ export type WebViewMessageEvent = NativeSyntheticEvent<WebViewMessage>;
 export type WebViewErrorEvent = NativeSyntheticEvent<WebViewError>;
 
 export type WebViewTerminatedEvent = NativeSyntheticEvent<WebViewNativeEvent>;
+
+export type WebViewUpdateCookiesEvent = NativeSyntheticEvent<WebViewUpdateCookies>;
 
 export type WebViewHttpErrorEvent = NativeSyntheticEvent<WebViewHttpError>;
 
@@ -329,6 +346,7 @@ export interface IOSNativeWebViewProps extends CommonNativeWebViewProps {
   scrollEnabled?: boolean;
   useSharedProcessPool?: boolean;
   onContentProcessDidTerminate?: (event: WebViewTerminatedEvent) => void;
+  onUpdateCookies?: (event: WebViewUpdateCookiesEvent) => void;
   injectedJavaScriptForMainFrameOnly?: boolean;
   injectedJavaScriptBeforeContentLoadedForMainFrameOnly?: boolean;
   onFileDownload?: (event: FileDownloadEvent) => void;
@@ -574,6 +592,12 @@ export interface IOSWebViewProps extends WebViewSharedProps {
    * @platform ios
    */
   onContentProcessDidTerminate?: (event: WebViewTerminatedEvent) => void;
+
+  /**
+   * Function that is invoked when the cookie store has been updated.
+   * @platform ios
+   */
+  onUpdateCookies?: (event: WebViewUpdateCookiesEvent) => void;
 
   /**
    * If `true` (default), loads the `injectedJavaScript` only into the main frame.
